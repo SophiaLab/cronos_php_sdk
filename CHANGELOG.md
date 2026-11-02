@@ -4,6 +4,20 @@ Todos os principais lançamentos e mudanças deste projeto serão documentados n
 
 ## [0.1.0] - 2026-11-02
 
+### Publicação
+
+- **O pacote se chama `sophialabs/cronos-flow-sdk`**, igual ao `cronos-flow-sdk`
+  do PyPI e do npm, e é assinado por Team Sophia.
+- **O que o Composer baixa não traz teste nem CI.** Em PHP não existe build: o
+  que está em `src/` é o que vai para o `vendor/` de quem instala. O que dá
+  para controlar é o resto, e o `.gitattributes` mantém `tests/`, `.github/`,
+  `phpunit.xml` e os templates fora do pacote. O CI falha se algum deles
+  aparecer lá dentro, e também se aparecer algo parecido com chave ou token.
+- **A publicação sai da tag.** O Packagist não recebe upload: ele lê o
+  repositório e transforma cada `vX.Y.Z` numa versão instalável. Merge na
+  `main` cria a tag da versão declarada em `CronosClient::VERSION`, e o webhook
+  avisa o Packagist. Não existe credencial neste caminho.
+
 ### Adicionado
 
 - **Primeira versão do SDK da API pública do CronosFlow.**

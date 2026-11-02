@@ -1,14 +1,14 @@
 SOPHIALABS — LICENÇA PROPRIETÁRIA RESTRITIVA (SEM CÓPIA, SEM REDISTRIBUIÇÃO)
 Versão 1.1
 
-Copyright (c) [ANO] SophiaLabs (“LICENCIANTE”). Todos os direitos reservados.
+Copyright (c) 2026 SophiaLabs (“LICENCIANTE”). Todos os direitos reservados.
 
 Este repositório e todo o seu conteúdo (incluindo, sem limitação, código-fonte, binários, scripts, arquivos de configuração, documentação, modelos, artefatos, ideias de implementação e quaisquer materiais correlatos) constituem SOFTWARE PROPRIETÁRIO e confidencial da SophiaLabs (“SOFTWARE”).
 
 AVISO: É PROIBIDO copiar, reproduzir, replicar, modificar, distribuir, publicar, disponibilizar, vender, ceder, sublicenciar ou criar obras derivadas do SOFTWARE, no todo ou em parte, sem autorização prévia e escrita da SophiaLabs.
 
 1. DEFINIÇÕES
-1.1. “SOPHIALABS” ou “LICENCIANTE”: SophiaLabs, empresa em constituição (sem CNPJ no presente momento), com sede/contato em [ENDEREÇO OU CIDADE/UF], e-mail: [E-MAIL DE CONTATO].
+1.1. “SOPHIALABS” ou “LICENCIANTE”: SophiaLabs, empresa em constituição (sem CNPJ no presente momento), com contato em contato@sophialabs.com.br.
 1.2. “SOFTWARE”: todo o conteúdo deste repositório e quaisquer cópias, forks, espelhos, exports, dumps, ou versões derivadas.
 1.3. “USUÁRIO”: qualquer pessoa física ou jurídica que acesse, baixe, clone, copie, compile, execute ou utilize o SOFTWARE, incluindo empregados, estagiários, prestadores, sócios, parceiros e quaisquer terceiros.
 1.4. “AUTORIZAÇÃO ESCRITA”: autorização formal emitida pela SophiaLabs por escrito (e-mail corporativo oficial, contrato assinado, ou documento equivalente), especificando escopo, prazo e finalidade.
@@ -27,6 +27,11 @@ Sem AUTORIZAÇÃO ESCRITA, o USUÁRIO não pode, direta ou indiretamente:
 (d) vender, licenciar, sublicenciar, alugar, arrendar, ceder, doar, transferir ou comercializar o SOFTWARE, no todo ou em parte;
 (e) utilizar o SOFTWARE (ou conhecimento técnico/material dele) para construir produto/serviço concorrente, substituto ou que explore substancialmente a mesma base técnica;
 (f) remover, alterar ou ocultar avisos de direitos autorais, confidencialidade, marcas, autoria, ou quaisquer avisos de titularidade.
+
+3.7. EXCEÇÃO EXPRESSA — PACOTES OFICIAIS EM GERENCIADORES PÚBLICOS DE DEPENDÊNCIA
+As proibições desta cláusula 3 NÃO se aplicam ao download, à instalação, ao armazenamento em cache e à execução dos pacotes oficiais do SDK do CronosFlow publicados pela própria SophiaLabs nos repositórios públicos de pacotes — PyPI (`cronos_flow_sdk`), npm (`cronos-flow-sdk`) e Packagist (`sophialabs/cronos-flow-sdk`) — quando utilizados como biblioteca para consumir a API do CronosFlow.
+Esta exceção autoriza exclusivamente a reprodução técnica inerente à instalação, aí incluídas a cópia feita pelo gerenciador de pacotes, os espelhos oficiais do próprio repositório público e o cache de build do USUÁRIO, bem como a redistribuição do pacote, sem modificação, embutido na aplicação do USUÁRIO como dependência.
+Esta exceção NÃO autoriza republicar o pacote sob outro nome, publicá-lo em outro repositório de pacotes, modificar, adaptar, derivar, realizar engenharia reversa, nem qualquer das condutas descritas nas alíneas (c), (d), (e) e (f) acima, que permanecem integralmente proibidas.
 
 4. CONFIDENCIALIDADE E PROTEÇÃO CONTRA USO INDEVIDO POR COLABORADORES
 4.1. O SOFTWARE e todas as informações técnicas, arquiteturais e de negócio nele contidas são consideradas INFORMAÇÕES CONFIDENCIAIS da SophiaLabs.
@@ -69,11 +74,10 @@ Sem AUTORIZAÇÃO ESCRITA, o USUÁRIO não pode, direta ou indiretamente:
 
 12. LEI APLICÁVEL E FORO
 12.1. Esta licença será regida pelas leis da República Federativa do Brasil.
-12.2. Fica eleito o foro da Comarca de [CIDADE/UF], com renúncia de qualquer outro, por mais privilegiado que seja, para dirimir controvérsias relacionadas a esta licença.
+12.2. Fica eleito o foro da sede do LICENCIANTE, com renúncia de qualquer outro, por mais privilegiado que seja, para dirimir controvérsias relacionadas a esta licença.
 
 13. CONTATO PARA AUTORIZAÇÃO
 Solicitações de autorização escrita, licenciamento comercial, ou permissões especiais:
-E-mail: [E-MAIL DE CONTATO]
-Endereço/Cidade: [ENDEREÇO OU CIDADE/UF]
+E-mail: contato@sophialabs.com.br
 
 FIM DA LICENÇA

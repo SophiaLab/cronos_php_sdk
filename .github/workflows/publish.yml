@@ -1,0 +1,211 @@
+name: Publicar no Packagist
+
+# A main e o espelho do que esta publicado -- mas em PHP "publicar" e outra
+# coisa.
+#
+# O Packagist nao recebe upload: ele LE o repositorio e transforma cada tag
+# `vX.Y.Z` numa versao instalavel. Entao nao existe credencial neste fluxo. O
+# que este workflow faz e criar a tag, e o webhook do Packagist faz o resto.
+#
+# O portao e a versao declarada em `CronosClient::VERSION`: se a tag dela ja
+# existe, o fluxo termina sem fazer nada. Por isso a main pode receber merge de
+# documentacao sem efeito colateral.
+#
+# Tag publicada nao se apaga: apagar uma tag que alguem ja instalou quebra o
+# `composer.lock` desse projeto para sempre.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: publicar-packagist
+  cancel-in-progress: false
+
+jobs:
+  versao:
+    name: A versao e nova?
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      pacote: ${{ steps.ler.outputs.pacote }}
+      versao: ${{ steps.ler.outputs.versao }}
+      publicar: ${{ steps.ler.outputs.publicar }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # As tags sao o estado que este job consulta; sem elas o portao acha
+          # que toda versao e nova e tenta publicar de novo a cada push.
+          fetch-depth: 0
+
+      - id: ler
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PACOTE=$(python3 -c "import json;print(json.load(open('composer.json'))['name'])")
+          VERSAO=$(sed -n "s/.*public const VERSION = '\([^']*\)'.*/\1/p" src/CronosClient.php | head -1)
+
+          if [ -z "$VERSAO" ]; then
+            echo "::error::nao achei a constante VERSION em src/CronosClient.php"
+            exit 1
+          fi
+
+          echo "pacote=$PACOTE" >> "$GITHUB_OUTPUT"
+          echo "versao=$VERSAO" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse -q --verify "refs/tags/v$VERSAO" >/dev/null; then
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+            echo "- a tag \`v$VERSAO\` ja existe: nada a fazer." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "publicar=true" >> "$GITHUB_OUTPUT"
+            echo "- \`$PACOTE $VERSAO\` ainda nao tem tag: publicando." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  gates:
+    name: Gates
+    needs: versao
+    if: needs.versao.outputs.publicar == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        # Os extremos da faixa que o `composer.json` promete. A matriz completa
+        # ja rodou na PR; aqui o objetivo e so nao marcar uma tag que nem
+        # carrega no PHP mais antigo que anunciamos.
+        php: ["8.1", "8.4"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, json
+          coverage: none
+      - run: composer validate --strict
+      - run: composer install --no-interaction --prefer-dist
+      - run: find src tests -name "*.php" -print0 | xargs -0 -n1 php -l
+      - run: vendor/bin/phpunit
+
+  publicar:
+    name: Tag e release
+    needs: [versao, gates]
+    runs-on: ubuntu-latest
+
+    environment:
+      name: packagist
+      url: https://packagist.org/packages/${{ needs.versao.outputs.pacote }}
+
+    permissions:
+      # A tag e a release sao tudo o que este job escreve. Nao ha credencial de
+      # registro aqui porque o Packagist nao tem onde receber uma.
+      contents: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Conferir que o pacote de distribuicao esta limpo
+        run: |
+          set -euo pipefail
+          git archive --format=tar HEAD > pacote.tar
+          python3 - <<'PY'
+          import re, sys, tarfile
+
+          SUSPEITO = re.compile(
+              rb"cf_(?!00000000_)[0-9a-f]{8}_[A-Za-z0-9_-]{16,}"
+              rb"|BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY"
+              rb"|AKIA[0-9A-Z]{16}"
+              rb"|ghp_[A-Za-z0-9]{36}",
+          )
+          FORA = ("tests/", ".github/", "phpunit.xml", "ISSUE_TEMPLATE.md",
+                  "PULL_REQUEST_TEMPLATE.md", "CONTRIBUTING.md", "SECURITY.md",
+                  ".gitattributes", ".gitignore")
+          PROIBIDOS = (".env", ".pem", ".key", ".p12", ".sqlite", ".db")
+
+          problemas = []
+          with tarfile.open("pacote.tar") as tar:
+              nomes = []
+              for membro in tar.getmembers():
+                  if not membro.isfile():
+                      continue
+                  nome = membro.name
+                  nomes.append(nome)
+                  if nome.startswith(FORA):
+                      problemas.append(f"deveria estar em export-ignore: {nome}")
+                  if nome.endswith(PROIBIDOS) or "/.git/" in nome:
+                      problemas.append(f"arquivo proibido: {nome}")
+                  if SUSPEITO.search(tar.extractfile(membro).read()):
+                      problemas.append(f"{nome} parece conter segredo")
+
+          for obrigatorio in ("composer.json", "LICENSE", "README.md"):
+              if obrigatorio not in nomes:
+                  problemas.append(f"faltando no pacote: {obrigatorio}")
+
+          for problema in problemas:
+              print(f"::error::{problema}")
+          sys.exit(1 if problemas else 0)
+          PY
+
+      - name: Marcar a versao e abrir a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSAO: ${{ needs.versao.outputs.versao }}
+          PACOTE: ${{ needs.versao.outputs.pacote }}
+        run: |
+          set -euo pipefail
+          if gh release view "v$VERSAO" >/dev/null 2>&1; then
+            echo "::notice::a release v$VERSAO ja existe"
+            exit 0
+          fi
+          gh release create "v$VERSAO" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSAO" \
+            --notes "\`composer require $PACOTE:^$VERSAO\`
+
+          Mudancas desta versao: [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/v$VERSAO/CHANGELOG.md)
+          No Packagist: https://packagist.org/packages/$PACOTE"
+
+      # O webhook do Packagist ja reage ao push da tag. Este passo existe para o
+      # caso de o webhook estar fora do ar ou nao configurado: com as duas
+      # variaveis presentes ele avisa o Packagist direto, e sem elas apenas diz
+      # que vai esperar o webhook.
+      - name: Avisar o Packagist
+        env:
+          USUARIO: ${{ secrets.PACKAGIST_USERNAME }}
+          TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+          PACOTE: ${{ needs.versao.outputs.pacote }}
+        run: |
+          set -euo pipefail
+          if [ -z "${USUARIO:-}" ] || [ -z "${TOKEN:-}" ]; then
+            echo "::notice::sem credencial do Packagist: contando com o webhook do repositorio"
+            exit 0
+          fi
+          CODIGO=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            -X POST -H 'Content-Type: application/json' \
+            -d "{\"repository\":{\"url\":\"https://packagist.org/packages/$PACOTE\"}}" \
+            "https://packagist.org/api/update-package?username=$USUARIO&apiToken=$TOKEN")
+          echo "  Packagist respondeu $CODIGO"
+          [ "$CODIGO" = "202" ] || echo "::warning::o Packagist respondeu $CODIGO; a atualizacao pode demorar ate o proximo crawl"
+
+      - name: Resumo
+        env:
+          VERSAO: ${{ needs.versao.outputs.versao }}
+          PACOTE: ${{ needs.versao.outputs.pacote }}
+        run: |
+          {
+            echo "## Publicado"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| pacote | \`$PACOTE\` |"
+            echo "| versao | \`$VERSAO\` |"
+            echo "| tag | \`v$VERSAO\` |"
+            echo "| commit | \`$GITHUB_SHA\` |"
+            echo "| Packagist | https://packagist.org/packages/$PACOTE |"
+            echo
+            echo "O Packagist indexa a tag pelo webhook; pode levar alguns minutos."
+          } >> "$GITHUB_STEP_SUMMARY"

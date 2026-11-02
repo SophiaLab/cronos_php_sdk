@@ -1,9 +1,20 @@
 name: CI
 
+# A develop e a branch de integracao: tudo passa por ela antes da main. Rodar o
+# CI no push dela, e nao so na PR, e o que impede a main receber uma develop que
+# ninguem viu verde.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
+
+# Nada aqui escreve no repositorio.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   testes:
@@ -15,9 +26,12 @@ jobs:
         # 8.1 sem rodar em 8.1 e so uma promessa.
         php: ["8.1", "8.2", "8.3", "8.4"]
     steps:
-      - uses: actions/checkout@v4
+      # As actions ficam presas no commit, nao na tag. Tag e um rotulo que o
+      # autor da action pode mover para outro codigo, e esse codigo roda dentro
+      # do nosso CI: o SHA e o que torna a cadeia auditavel.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: ${{ matrix.php }}
           extensions: curl, json
@@ -32,3 +46,155 @@ jobs:
         run: find src tests -name "*.php" -print0 | xargs -0 -n1 php -l
 
       - run: vendor/bin/phpunit
+
+  pacote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Em PHP nao existe build: o que esta em `src/` e literalmente o que vai
+      # parar dentro do `vendor/` de quem instala. O que da para controlar e o
+      # resto -- e quem controla e o `export-ignore` do `.gitattributes`, que e
+      # o que o GitHub respeita ao gerar o zip que o Composer baixa.
+      #
+      # `git archive` gera exatamente esse zip, entao e nele que se olha.
+      - name: O que o Composer vai baixar
+        run: |
+          set -euo pipefail
+          git archive --format=tar HEAD > pacote.tar
+          {
+            echo "### Conteudo instalado"
+            echo
+            echo "| arquivo | bytes |"
+            echo "|---|---|"
+            tar -tvf pacote.tar | awk '$1 !~ /^d/ {printf "| `%s` | %s |\n", $6, $3}'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Nem teste, nem CI, nem segredo dentro do pacote
+        run: |
+          python3 - <<'PY'
+          import re, sys, tarfile
+
+          # O prefixo da chave do CronosFlow e `cf_`; o `cf_00000000_` e o
+          # exemplo usado na documentacao e nos testes, e nao conta.
+          SUSPEITO = re.compile(
+              rb"cf_(?!00000000_)[0-9a-f]{8}_[A-Za-z0-9_-]{16,}"
+              rb"|BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY"
+              rb"|AKIA[0-9A-Z]{16}"
+              rb"|ghp_[A-Za-z0-9]{36}",
+          )
+          FORA = ("tests/", ".github/", "phpunit.xml", "ISSUE_TEMPLATE.md",
+                  "PULL_REQUEST_TEMPLATE.md", "CONTRIBUTING.md", "SECURITY.md",
+                  ".gitattributes", ".gitignore")
+          PROIBIDOS = (".env", ".pem", ".key", ".p12", ".sqlite", ".db")
+
+          problemas = []
+          with tarfile.open("pacote.tar") as tar:
+              nomes = []
+              for membro in tar.getmembers():
+                  if not membro.isfile():
+                      continue
+                  nome = membro.name
+                  nomes.append(nome)
+                  if nome.startswith(FORA):
+                      problemas.append(f"deveria estar em export-ignore: {nome}")
+                  if nome.endswith(PROIBIDOS) or "/.git/" in nome:
+                      problemas.append(f"arquivo proibido: {nome}")
+                  if SUSPEITO.search(tar.extractfile(membro).read()):
+                      problemas.append(f"{nome} parece conter segredo")
+
+          # O que nao pode faltar: sem isto o pacote instala e nao funciona.
+          for obrigatorio in ("composer.json", "LICENSE", "README.md"):
+              if obrigatorio not in nomes:
+                  problemas.append(f"faltando no pacote: {obrigatorio}")
+          if not any(n.startswith("src/") for n in nomes):
+              problemas.append("faltando no pacote: o proprio src/")
+
+          for problema in problemas:
+              print(f"::error::{problema}")
+          print(f"{len(nomes)} arquivos no pacote de distribuicao")
+          sys.exit(1 if problemas else 0)
+          PY
+
+  instalacao:
+    # Declarar que o pacote instala nao e o mesmo que instalar. Aqui ele entra
+    # num projeto vazio pelo caminho de verdade do Composer e e carregado pelo
+    # autoload, que e o que quebra quando o PSR-4 e o caminho discordam.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: sdk
+
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: "8.1"
+          extensions: curl, json
+          coverage: none
+
+      - name: Instalar num projeto vazio e usar
+        run: |
+          set -euo pipefail
+          NOME=$(php -r 'echo json_decode(file_get_contents("sdk/composer.json"))->name;')
+
+          # O projeto instala a partir do que `git archive` produz, nao da
+          # pasta de trabalho: e o archive que respeita o `export-ignore`, e
+          # portanto e ele que representa o que o Composer baixa de verdade.
+          # Apontar para a pasta crua instalaria teste e CI junto e o teste
+          # abaixo nao provaria nada.
+          mkdir -p entregue && git -C sdk archive --format=tar HEAD | tar -x -C entregue
+
+          mkdir -p projeto && cd projeto
+          cat > composer.json <<JSON
+          {
+            "repositories": [{ "type": "path", "url": "../entregue", "options": { "symlink": false } }],
+            "require": { "$NOME": "*" },
+            "minimum-stability": "dev"
+          }
+          JSON
+          composer install --no-interaction --quiet
+
+          cat > usar.php <<'PHP'
+          <?php
+          require __DIR__ . '/vendor/autoload.php';
+
+          use SophiaLabs\CronosFlow\CronosClient;
+          use SophiaLabs\CronosFlow\Exception\DailyLimitReached;
+
+          $cronos = new CronosClient('cf_00000000_naoeumachavereal0000000000000000');
+
+          // A chave nao pode aparecer em var_dump: ele acaba em log, em pagina
+          // de erro e em relatorio de excecao de framework.
+          ob_start();
+          var_dump($cronos);
+          $despejo = ob_get_clean();
+
+          if (str_contains($despejo, 'naoeumachavereal')) {
+              fwrite(STDERR, "a chave vazou no var_dump\n");
+              exit(1);
+          }
+          if (! str_contains($despejo, 'cf_00000000_***')) {
+              fwrite(STDERR, "o prefixo mascarado sumiu do var_dump\n");
+              exit(1);
+          }
+
+          if (! is_subclass_of(DailyLimitReached::class, Throwable::class)) {
+              fwrite(STDERR, "a hierarquia de excecao quebrou\n");
+              exit(1);
+          }
+
+          echo "autoload ok, chave mascarada, excecoes no lugar\n";
+          PHP
+          php usar.php
+
+      - name: O fonte veio, o teste nao
+        run: |
+          set -euo pipefail
+          ALVO=projeto/vendor/$(php -r 'echo json_decode(file_get_contents("sdk/composer.json"))->name;')
+          # `git archive` ja aplicou o export-ignore; isto confirma o resultado.
+          echo "instalado em $ALVO:"
+          ls "$ALVO"
+          if [ -d "$ALVO/tests" ]; then
+            echo "::error::os testes foram instalados junto com o pacote"
+            exit 1
+          fi

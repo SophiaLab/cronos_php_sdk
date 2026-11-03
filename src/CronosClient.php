@@ -164,7 +164,7 @@ final class CronosClient
         $headers = [
             'X-API-Key' => $this->apiKey,
             'Accept' => 'application/json',
-            'User-Agent' => 'cronosflow-php/' . self::VERSION,
+            'User-Agent' => 'cronos-flow-sdk-php/' . self::VERSION,
         ];
         if ($idempotencyKey !== null) {
             $headers['Idempotency-Key'] = $idempotencyKey;
@@ -249,7 +249,7 @@ final class CronosClient
         $headers = [
             'X-API-Key' => $this->apiKey,
             'Accept' => 'text/event-stream',
-            'User-Agent' => 'cronosflow-php/' . self::VERSION,
+            'User-Agent' => 'cronos-flow-sdk-php/' . self::VERSION,
         ];
         $request = new Request('GET', $this->baseUrl . $path, $headers, null, $this->policy->timeout, true);
         $eventName = 'message';

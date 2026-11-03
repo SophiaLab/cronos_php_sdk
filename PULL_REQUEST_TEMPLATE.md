@@ -1,32 +1,37 @@
-# Template de Pull Request
+<!--
+PR vai para a `develop`. A `main` recebe merge da `develop`, e merge na `main`
+cria a tag da versao declarada em CronosClient::VERSION -- e e da tag que o
+Packagist publica.
+-->
 
-## Descrição
+## O que muda
 
-Por favor, inclua um resumo da mudança e qual issue foi resolvida. Inclua também contexto relevante e motivações para a mudança.
+Em uma frase, do ponto de vista de quem usa o SDK.
 
-Fixes # (issue)
+## Por que
 
-## Tipo de Mudança
+O problema que isso resolve.
 
-- [ ] Bugfix
+## Tipo
+
+- [ ] Correção
 - [ ] Nova funcionalidade
-- [ ] Alteração de funcionalidade existente
-- [ ] Refatoração de código
+- [ ] Mudança de comportamento existente (quebra quem já usa?)
 - [ ] Documentação
-
-## Como isso foi testado?
-
-Descreva os testes que você rodou para verificar suas mudanças. Inclua instruções que permitam que possamos reproduzir. Liste quaisquer detalhes relevantes para a configuração do teste.
-
-- [ ] Testes unitários
-- [ ] Testes manuais
+- [ ] CI / build
 
 ## Checklist
 
-- [ ] Meu código segue as diretrizes de estilo deste projeto
-- [ ] Eu fiz uma autoavaliação do meu código
-- [ ] Eu comentei meu código, principalmente em áreas difíceis de entender
-- [ ] Eu fiz as mudanças correspondentes na documentação
-- [ ] Minhas mudanças não geram novos avisos
-- [ ] Eu adicionei testes que provam que minha correção é eficaz ou que minha feature funciona
-- [ ] Testes novos e existentes passam com as mudanças
+- [ ] `vendor/bin/phpunit` passa
+- [ ] `composer validate --strict` passa
+- [ ] `php -l` limpo em `src` e `tests`
+- [ ] Compatível com PHP 8.1
+- [ ] Nenhuma dependência de produção nova
+- [ ] Nada novo entrando no pacote instalado (o `export-ignore` do `.gitattributes`)
+- [ ] `CHANGELOG.md` atualizado, se a mudança é visível para quem usa
+- [ ] Nenhuma chave, token ou arquivo de ambiente no diff
+
+## Publicação
+
+- [ ] Esta PR **não** mexe em `CronosClient::VERSION`: a `main` não vai criar tag
+- [ ] Esta PR sobe a `VERSION` para `x.y.z` e o merge na `main` vai publicar

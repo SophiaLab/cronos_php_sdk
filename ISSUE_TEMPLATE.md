@@ -1,20 +1,33 @@
-# Template de Issue
+<!--
+Antes de enviar: nunca cole uma chave de API de verdade (`cf_...`) aqui.
+Issue e publica e fica indexada. A chave vale como senha da conta: envia
+mensagem, cria e apaga numero. Troque por `cf_00000000_exemplo`.
 
-## Descrição do Problema
+Achou falha de seguranca? Nao abra issue. Veja SECURITY.md.
+-->
 
-Descreva claramente o problema. Qual comportamento você esperava que ocorresse? O que realmente aconteceu?
+## O que aconteceu
 
-## Passos para Reproduzir
+O que você esperava e o que o SDK fez.
 
-Liste os passos necessários para reproduzir o problema:
+## Como reproduzir
 
-1. Vá para '...'
-2. Clique em '...'
-3. Role para baixo até '...'
-4. Veja o erro
+```php
+use SophiaLabs\CronosFlow\CronosClient;
+
+$cronos = new CronosClient("cf_00000000_exemplo");
+// ...
+```
+
+## Erro completo
+
+```
+cole aqui o stack trace, com a chave removida
+```
 
 ## Ambiente
 
-- Versão do Projeto: [versão]
-- Sistema Operacional: [SO e versão]
-- Outras informações relevantes: [exemplo: versão do Python, dependências]
+- versão do `cronos-flow-sdk`: `composer show sophialabs/cronos-flow-sdk`
+- versão do PHP: `php -v`
+- extensões: `php -m | grep -E "curl|json"`
+- sistema operacional:

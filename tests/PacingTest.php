@@ -137,7 +137,7 @@ final class PacingTest extends TestCase
         $relogio = new Clock();
         $transporte = new FakeTransport();
         $cronos = new CronosClient(
-            apiKey: 'cf_a1b2c3d4_' . str_repeat('0', 32),
+            apiKey: 'cf_00000000_' . str_repeat('0', 32),
             policy: new SendPolicy(minInterval: 35.0, maxInterval: 35.0, maxAttempts: 1),
             transport: $transporte,
         );

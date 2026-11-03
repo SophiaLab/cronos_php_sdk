@@ -4,7 +4,7 @@ SDK oficial da [API pública do CronosFlow](https://cronosflow.sophialabs.com.br
 envio de WhatsApp a partir do seu servidor, com o ritmo que protege o número.
 
 ```bash
-composer require sophialabs/cronosflow
+composer require sophialabs/cronos-flow-sdk
 ```
 
 ```php
@@ -150,6 +150,13 @@ HTTP configurado (proxy corporativo, log, métrica), implemente
 ## Compatibilidade
 
 PHP 8.1 ou mais novo, com as extensões `curl` e `json`.
+
+## Quem mantém
+
+Team Sophia, da [SophiaLabs](https://sophialabs.com.br). Dúvida de uso vai em
+[issue](https://github.com/SophiaLab/cronos_php_sdk/issues); falha de segurança
+vai para contato@sophialabs.com.br, nunca em issue pública
+([SECURITY.md](SECURITY.md)).
 
 ## Licença
 

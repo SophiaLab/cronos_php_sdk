@@ -25,7 +25,10 @@ use SophiaLabs\CronosFlow\Transport\Response;
 
 final class ClientTest extends TestCase
 {
-    private const CHAVE = 'cf_a1b2c3d4_0a1b2c3d4e5f60718293a4b5c6d7e8f9';
+    // O prefixo zerado nao e enfeite: o CI varre o pacote de distribuicao
+    // procurando chave de verdade, e chave de exemplo com prefixo plausivel
+    // obrigaria a varredura a adivinhar qual das duas e qual.
+    private const CHAVE = 'cf_00000000_naoeumachavereal0000000000000000';
 
     private const OGG = "OggS\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00OpusHead";
     private const MP4 = "\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2";
@@ -63,7 +66,7 @@ final class ClientTest extends TestCase
 
         // `var_dump` de objeto acaba em log e em tela de debug de framework.
         $debug = $cronos->__debugInfo();
-        self::assertSame('cf_a1b2c3d4_***', $debug['apiKey']);
+        self::assertSame('cf_00000000_***', $debug['apiKey']);
         self::assertStringNotContainsString('0a1b2c3d4e5f', json_encode($debug, JSON_THROW_ON_ERROR));
     }
 

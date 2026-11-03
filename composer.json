@@ -1,5 +1,5 @@
 {
-    "name": "sophialabs/cronosflow",
+    "name": "sophialabs/cronos-flow-sdk",
     "description": "SDK oficial da API publica do CronosFlow: envio de WhatsApp com ritmo seguro, idempotencia e repeticao controlada.",
     "type": "library",
     "keywords": ["whatsapp", "cronosflow", "sdk", "mensageria", "api"],
@@ -7,13 +7,16 @@
     "license": "proprietary",
     "authors": [
         {
-            "name": "SophiaLabs",
-            "homepage": "https://cronosflow.sophialabs.com.br"
+            "name": "Team Sophia",
+            "email": "contato@sophialabs.com.br",
+            "homepage": "https://cronosflow.sophialabs.com.br",
+            "role": "Mantenedor"
         }
     ],
     "support": {
         "docs": "https://cronosflow.sophialabs.com.br/docs/api",
-        "issues": "https://github.com/SophiaLab/cronos_php_sdk/issues"
+        "issues": "https://github.com/SophiaLab/cronos_php_sdk/issues",
+        "email": "contato@sophialabs.com.br"
     },
     "require": {
         "php": ">=8.1",
